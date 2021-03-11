@@ -172,7 +172,7 @@ const Indicator = GObject.registerClass(
                 } else { // Hazardous
                     this.quality_icon.icon_name = "face-sick-symbolic"
                 }
-                this.quality_value.text = json_aqi.toString();
+                this.quality_value.text = json_aqi.toString() + " / " + this.aqi;
                 this.location.label_actor.text = `${this.city}, ${this.state}, ${this.country}`;
                 this.lastUpdate.label_actor.text = "Last update: " + new Date().toLocaleTimeString();;
             });
