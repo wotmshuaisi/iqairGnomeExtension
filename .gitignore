@@ -1,0 +1,3 @@
+release
+*.zip
+**/org.gnome.shell.extensions.iqair-gnome-extension.gschema.xml_test
