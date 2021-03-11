@@ -8,8 +8,11 @@ Gnome extension for tracking air quality in real-time. data provider: [iqair.com
 ## ScreenShot
 
 - Extension
-  ![](screenshot.jpg)
+
+![](screenshot.jpg)
+
 - Settings
+
   ...
 
 ## Installation
