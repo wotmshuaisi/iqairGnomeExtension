@@ -46,11 +46,6 @@ const Indicator = GObject.registerClass(
             this.lastUpdate;
             this.location;
             this.menu;
-            this.country = "";
-            this.state = "";
-            this.city = "";
-            this.token = "";
-            this.aqi = "";
             this.refresh = 0;
             this.api_url = "https://api.airvisual.com/v2/city";
             this._httpSession = new Soup.SessionAsync();
@@ -65,12 +60,6 @@ const Indicator = GObject.registerClass(
             this.settings = new Gio.Settings({
                 settings_schema: gschema.lookup('org.gnome.shell.extensions.iqair-gnome-extension', true)
             });
-
-            this.country = this.settings.get_value("country").unpack();
-            this.state = this.settings.get_value("state").unpack();
-            this.city = this.settings.get_value("city").unpack();
-            this.aqi = this.settings.get_value("aqi").unpack();
-            this.token = this.settings.get_value("token").unpack();
 
             // Watch the settings for changes
             // this._onPanelStatesChangedId = this.settings.connect(
@@ -101,7 +90,7 @@ const Indicator = GObject.registerClass(
                 this.refreshData();
             });
             showOnWebsite.connect('activate', () => {
-                const url = `https://www.iqair.com/${this.country.toLowerCase()}/${this.state.toLowerCase()}/${this.city.toLowerCase()}/`
+                const url = `https://www.iqair.com/${this.settings.get_value("country").unpack().toLowerCase()}/${this.settings.get_value("state").unpack().toLowerCase()}/${this.settings.get_value("city").unpack().toLowerCase()}/`
                 try {
                     Gtk.show_uri(null, url, global.get_current_time());
                 } catch (error) {
@@ -120,14 +109,14 @@ const Indicator = GObject.registerClass(
             box.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
             this.add_child(box);
 
-            if (this.token !== "") {
+            if (this.settings.get_value("token").unpack() !== "") {
                 this.refreshData();
             }
 
         }
 
         buildRequest() {
-            const url = this.api_url + "?" + encodeURI(["city=" + this.city, "state=" + this.state, "country=" + this.country, "key=" + this.token].join("&"))
+            const url = this.api_url + "?" + encodeURI(["city=" + this.settings.get_value("city").unpack(), "state=" + this.settings.get_value("state").unpack(), "country=" + this.settings.get_value("country").unpack(), "key=" + this.settings.get_value("token").unpack()].join("&"))
             let request = Soup.Message.new("GET", url);
             request.request_headers.append('Cache-Control', 'no-cache');
             request.request_headers.append('User-Agent', 'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36');
@@ -137,8 +126,8 @@ const Indicator = GObject.registerClass(
         }
 
         refreshData() {
-            if (this.token === "") {
-                Main.notifyError(_('[Iqair Gnome Extension] Token is required.'));
+            if (this.settings.get_value("token").unpack() === '') {
+                Main.notify('[Iqair Gnome Extension] Token is required.', '');
                 return;
             }
             this._httpSession.queue_message(this.buildRequest(), (_, response) => {
@@ -153,7 +142,7 @@ const Indicator = GObject.registerClass(
                 }
                 let json_aqi = 0;
                 // AQI standard
-                if (this.aqi === "CN API") {
+                if (this.settings.get_value("aqi").unpack() === "CN AQI") {
                     json_aqi = json_data.data.current.pollution.aqicn;
                 } else {
                     json_aqi = json_data.data.current.pollution.aqius;
@@ -172,9 +161,9 @@ const Indicator = GObject.registerClass(
                 } else { // Hazardous
                     this.quality_icon.icon_name = "face-sick-symbolic"
                 }
-                this.quality_value.text = json_aqi.toString() + " / " + this.aqi;
-                this.location.label_actor.text = `${this.city}, ${this.state}, ${this.country}`;
-                this.lastUpdate.label_actor.text = "Last update: " + new Date().toLocaleTimeString();;
+                this.quality_value.text = json_aqi.toString() + " / " + this.settings.get_value("aqi").unpack();
+                this.location.label_actor.text = `${this.settings.get_value("city").unpack()}, ${this.settings.get_value("state").unpack()}, ${this.settings.get_value("country").unpack()}`;
+                this.lastUpdate.label_actor.text = "Last update: " + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
         }
 

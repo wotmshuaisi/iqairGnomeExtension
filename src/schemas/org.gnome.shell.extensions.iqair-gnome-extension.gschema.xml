@@ -18,8 +18,5 @@
         <key name="aqi" type="s">
             <default>"US AQI"</default>
         </key>
-        <key name="refresh" type="q">
-            <default>60</default>
-        </key>
     </schema>
 </schemalist>
