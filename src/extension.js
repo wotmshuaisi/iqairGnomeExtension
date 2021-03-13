@@ -32,14 +32,16 @@ const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Soup = imports.gi.Soup;
+const Mainloop = imports.mainloop;
+const Lang = imports.lang;
 
-
-const Indicator = GObject.registerClass(
-    class Indicator extends PanelMenu.Button {
+const AQIIndicator = GObject.registerClass(
+    class AQIIndicator extends PanelMenu.Button {
 
         _init() {
             super._init(0.0, _('IqairMenuButton'));
 
+            this.lock = false;
             this.settings;
             this.quality_icon;
             this.quality_value;
@@ -112,7 +114,6 @@ const Indicator = GObject.registerClass(
             if (this.settings.get_value("token").unpack() !== "") {
                 this.refreshData();
             }
-
         }
 
         buildRequest() {
@@ -121,13 +122,19 @@ const Indicator = GObject.registerClass(
             request.request_headers.append('Cache-Control', 'no-cache');
             request.request_headers.append('User-Agent', 'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36');
 
-            this.log([url]); // debug
+            // this.log([url]); // debug
             return request;
         }
 
         refreshData() {
+            if (this.lock) {
+                return;
+            }
+            this.lock = true;
             if (this.settings.get_value("token").unpack() === '') {
                 Main.notify('[Iqair Gnome Extension] Token is required.', '');
+                this.lock = false;
+                Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
                 return;
             }
             this._httpSession.queue_message(this.buildRequest(), (_, response) => {
@@ -161,10 +168,14 @@ const Indicator = GObject.registerClass(
                 } else { // Hazardous
                     this.quality_icon.icon_name = "face-sick-symbolic"
                 }
+                this.log([`Update AQI from: ${this.quality_value.text} to ${json_aqi.toString() + " / " + this.settings.get_value("aqi").unpack()
+                    }`]);
                 this.quality_value.text = json_aqi.toString() + " / " + this.settings.get_value("aqi").unpack();
                 this.location.label_actor.text = `${this.settings.get_value("city").unpack()}, ${this.settings.get_value("state").unpack()}, ${this.settings.get_value("country").unpack()}`;
                 this.lastUpdate.label_actor.text = "Last update: " + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
+            this.lock = false;
+            Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
         }
 
         log(logs) {
@@ -176,12 +187,11 @@ const Indicator = GObject.registerClass(
 class Extension {
     constructor(uuid) {
         this._uuid = uuid;
-
         ExtensionUtils.initTranslations(GETTEXT_DOMAIN);
     }
 
     enable() {
-        this._indicator = new Indicator();
+        this._indicator = new AQIIndicator();
         Main.panel.addToStatusArea(this._uuid, this._indicator);
     }
 
