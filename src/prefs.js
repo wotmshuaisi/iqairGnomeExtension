@@ -157,6 +157,15 @@ function buildPrefsWidget() {
         refreshComboBox(city_combo, session, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
     }
     prefsWidget.attach(city_combo, 2, 5, 1, 1);
+    // Link
+    let token_link_button = new Gtk.LinkButton({
+        label: 'Get an API token',
+        uri: "https://www.iqair.com/us/dashboard/api",
+        halign: Gtk.Align.END,
+        visible: true
+    });
+    prefsWidget.attach(token_link_button, 2, 6, 1, 1);
+
 
     // ComboBox events
     country_combo.connect('changed', () => {

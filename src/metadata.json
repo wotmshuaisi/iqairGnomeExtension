@@ -1,6 +1,6 @@
 {
   "name": "Iqair Gnome Extension",
-  "description": "Gnome extension for tracking air quality in real-time. data provider: [iqair.com](https://iqair.com/)",
+  "description": "Gnome extension for tracking air quality in real-time. data provider: https://iqair.com/. to get an API token: https://www.iqair.com/us/dashboard/api",
   "uuid": "iqair-gnome-extension@wotmshuaisi_github",
   "shell-version": [
     "3.38"
