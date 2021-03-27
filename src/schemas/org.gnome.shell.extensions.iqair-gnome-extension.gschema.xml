@@ -18,5 +18,8 @@
         <key name="aqi" type="s">
             <default>"US AQI"</default>
         </key>
+        <key name="hide-unit" type="b">
+            <default>false</default>
+        </key>
     </schema>
 </schemalist>

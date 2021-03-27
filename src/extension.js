@@ -170,7 +170,10 @@ const AQIIndicator = GObject.registerClass(
                 }
                 this.log([`Update AQI from: ${this.quality_value.text} to ${json_aqi.toString() + " / " + this.settings.get_value("aqi").unpack()
                     }`]);
-                this.quality_value.text = json_aqi.toString() + " / " + this.settings.get_value("aqi").unpack();
+                this.quality_value.text = json_aqi.toString();
+                if (!this.settings.get_value("hide-unit").unpack()) {
+                    this.quality_value.text += " / " + this.settings.get_value("aqi").unpack();
+                }
                 this.location.label_actor.text = `${this.settings.get_value("city").unpack()}, ${this.settings.get_value("state").unpack()}, ${this.settings.get_value("country").unpack()}`;
                 this.lastUpdate.label_actor.text = "Last update: " + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });

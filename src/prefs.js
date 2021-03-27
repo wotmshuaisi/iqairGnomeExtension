@@ -60,19 +60,37 @@ function buildPrefsWidget() {
             }
         });
     });
-    // 
+
+    // Hide AQI Unit
+    let aqi_hide_label = new Gtk.Label({
+        label: 'Hide AQI unit:',
+        halign: Gtk.Align.START,
+        visible: true
+    });
+    prefsWidget.attach(aqi_hide_label, 0, 2, 1, 1);
+    if (!this.settings.get_boolean('hide-unit')) {
+        this.settings.set_boolean('hide-unit', false);
+    }
+    let hide_unit_switch = new Gtk.Switch({ hexpand: true, halign: Gtk.Align.END });
+    hide_unit_switch.set_active(this.settings.get_boolean('hide-unit'));
+    hide_unit_switch.connect('state-set', () => {
+        log([hide_unit_switch.state, hide_unit_switch.active]);
+        this.settings.set_boolean('hide-unit', hide_unit_switch.active);
+    });
+    prefsWidget.attach(hide_unit_switch, 2, 2, 1, 1);
+
     // IQAIR Token
     let token_label = new Gtk.Label({
         label: 'IQAir Token:',
         halign: Gtk.Align.START,
         visible: true
     });
-    prefsWidget.attach(token_label, 0, 2, 1, 1);
-    if (!settings.get_string('token')) {
+    prefsWidget.attach(token_label, 0, 3, 1, 1);
+    if (!this.settings.get_string('token')) {
         this.settings.set_string('token', '');
     }
     let token_entry = new Gtk.Entry({
-        text: settings.get_string('token'),
+        text: this.settings.get_string('token'),
         halign: Gtk.Align.END,
         editable: true,
         visible: true,
@@ -84,19 +102,20 @@ function buildPrefsWidget() {
             this.settings.set_string('token', input.text);
         }
     });
-    prefsWidget.attach(token_entry, 2, 2, 1, 1);
+    prefsWidget.attach(token_entry, 2, 3, 1, 1);
+
     // Country
     let country_label = new Gtk.Label({
         label: 'Country:',
         halign: Gtk.Align.START,
         visible: true
     });
-    prefsWidget.attach(country_label, 0, 3, 1, 1);
+    prefsWidget.attach(country_label, 0, 4, 1, 1);
     if (!this.settings.get_string('country')) {
         this.settings.set_string('country', 'USA');
     }
     let country_combo = buildComboBox(['USA', 'China'], 'USA');
-    if (settings.get_string('token') && settings.get_string('token').length == 36) {
+    if (this.settings.get_string('token') && this.settings.get_string('token').length == 36) {
         session.queue_message(buildRequest(settings.get_string('token'), 'countries', []), (_, response) => {
             let json_data = parseResponse(response);
             if (json_data === true) {
@@ -114,49 +133,51 @@ function buildPrefsWidget() {
             });
         });
     }
-    prefsWidget.attach(country_combo, 2, 3, 1, 1);
+    prefsWidget.attach(country_combo, 2, 4, 1, 1);
+
     // State
     let state_label = new Gtk.Label({
         label: 'State:',
         halign: Gtk.Align.START,
         visible: true
     });
-    prefsWidget.attach(state_label, 0, 4, 1, 1);
+    prefsWidget.attach(state_label, 0, 5, 1, 1);
     if (!this.settings.get_string('state')) {
         this.settings.set_string('state', 'California');
     }
     let state_combo = buildComboBox([], '');
     if (
-        settings.get_string('token') &&
-        settings.get_string('token').length == 36 &&
-        settings.get_string('country') &&
-        settings.get_string('country') !== ''
+        this.settings.get_string('token') &&
+        this.settings.get_string('token').length == 36 &&
+        this.settings.get_string('country') &&
+        this.settings.get_string('country') !== ''
     ) {
         refreshComboBox(state_combo, session, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
     }
-    prefsWidget.attach(state_combo, 2, 4, 1, 1);
+    prefsWidget.attach(state_combo, 2, 5, 1, 1);
+
     // City
     let city_label = new Gtk.Label({
         label: 'City:',
         halign: Gtk.Align.START,
         visible: true
     });
-    prefsWidget.attach(city_label, 0, 5, 1, 1);
+    prefsWidget.attach(city_label, 0, 6, 1, 1);
     if (!this.settings.get_string('city')) {
         this.settings.set_string('city', 'Los Angeles');
     }
     let city_combo = buildComboBox([], '');
     if (
-        settings.get_string('token') &&
-        settings.get_string('token').length == 36 &&
-        settings.get_string('country') &&
-        settings.get_string('country') !== '' &&
-        settings.get_string('state') &&
-        settings.get_string('state') !== ''
+        this.settings.get_string('token') &&
+        this.settings.get_string('token').length == 36 &&
+        this.settings.get_string('country') &&
+        this.settings.get_string('country') !== '' &&
+        this.settings.get_string('state') &&
+        this.settings.get_string('state') !== ''
     ) {
         refreshComboBox(city_combo, session, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
     }
-    prefsWidget.attach(city_combo, 2, 5, 1, 1);
+    prefsWidget.attach(city_combo, 2, 7, 1, 1);
     // Link
     let token_link_button = new Gtk.LinkButton({
         label: 'Get an API token',
@@ -164,7 +185,7 @@ function buildPrefsWidget() {
         halign: Gtk.Align.END,
         visible: true
     });
-    prefsWidget.attach(token_link_button, 2, 6, 1, 1);
+    prefsWidget.attach(token_link_button, 2, 7, 1, 1);
 
 
     // ComboBox events
@@ -172,7 +193,7 @@ function buildPrefsWidget() {
         if (country_combo.active_id && country_combo.active_id !== '') {
             this.settings.set_string('country', country_combo.active_id);
             state_combo.remove_all();
-            refreshComboBox(state_combo, session, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
+            refreshComboBox(state_combo, session, this.settings, ['country=' + this.settings.get_string('country')], 'states', 'state');
             city_combo.remove_all();
         }
     })
@@ -180,7 +201,7 @@ function buildPrefsWidget() {
         if (state_combo.active_id && state_combo.active_id !== '') {
             this.settings.set_string('state', state_combo.active_id);
             city_combo.remove_all();
-            refreshComboBox(city_combo, session, this.settings, ['country=' + settings.get_string('country'), , 'state=' + settings.get_string('state')], 'cities', 'city');
+            refreshComboBox(city_combo, session, this.settings, ['country=' + this.settings.get_string('country'), , 'state=' + this.settings.get_string('state')], 'cities', 'city');
         }
     })
     city_combo.connect('changed', () => {
@@ -204,7 +225,7 @@ function refreshComboBox(box, session, settings, params, target, inlineTarget) {
             if (item[inlineTarget]) {
                 const val = item[inlineTarget];
                 box.append(val, val)
-                if (this.settings.get_string(inlineTarget) == val) {
+                if (settings.get_string(inlineTarget) == val) {
                     box.set_active_id(val);
                 }
             }
