@@ -21,5 +21,8 @@
         <key name="hide-unit" type="b">
             <default>false</default>
         </key>
+        <key name="panel-position" type="s">
+            <default>"Right"</default>
+        </key>
     </schema>
 </schemalist>

@@ -177,15 +177,28 @@ function buildPrefsWidget() {
     ) {
         refreshComboBox(city_combo, session, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
     }
-    prefsWidget.attach(city_combo, 2, 7, 1, 1);
+    prefsWidget.attach(city_combo, 2, 6, 1, 1);
+    // Position in panel
+    let panel_position_label = new Gtk.Label({
+        label: 'Position in panel:',
+        halign: Gtk.Align.START,
+        visible: true
+    });
+    prefsWidget.attach(panel_position_label, 0, 7, 1, 1);
+    if (!this.settings.get_string('panel-position')) {
+        this.settings.set_string('panel-position', 'Right');
+    }
+    let panel_position_combo = buildComboBox(['Left', 'Center', 'Right'], this.settings.get_string('panel-position'));
+    prefsWidget.attach(panel_position_combo, 2, 7, 1, 1);
     // Link
     let token_link_button = new Gtk.LinkButton({
         label: 'Get an API token',
-        uri: "https://www.iqair.com/us/dashboard/api",
+        uri: 'https://www.iqair.com/us/dashboard/api',
         halign: Gtk.Align.END,
         visible: true
     });
-    prefsWidget.attach(token_link_button, 2, 7, 1, 1);
+    prefsWidget.attach(token_link_button, 2, 10, 1, 1);
+
 
 
     // ComboBox events
@@ -209,6 +222,9 @@ function buildPrefsWidget() {
             this.settings.set_string('city', city_combo.active_id);
         }
     })
+    panel_position_combo.connect('changed', () => {
+        this.settings.set_string('panel-position', panel_position_combo.active_id);
+    });
     // Return our widget which will be added to the window
     prefsWidget.show_all();
     return prefsWidget;
@@ -258,17 +274,17 @@ function buildRequest(token, field, arr) {
 
 function parseResponse(response) {
     if (response.status_code > 299) {
-        log(["Remote server error:", response.status_code, response.response_body.data]);
+        log(['Remote server error:', response.status_code, response.response_body.data]);
         return true;
     }
     const json_data = JSON.parse(response.response_body.data);
-    if (!json_data.status || json_data.status !== "success" || !json_data.data) {
-        log(["Remote server error:", response.response_body.data]);
+    if (!json_data.status || json_data.status !== 'success' || !json_data.data) {
+        log(['Remote server error:', response.response_body.data]);
         return true;
     }
     return json_data;
 }
 
 function log(logs) {
-    print('[IqairMenuButton-Settings]', logs.join(", "));
+    print('[IqairMenuButton-Settings]', logs.join(', '));
 }

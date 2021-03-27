@@ -49,7 +49,7 @@ const AQIIndicator = GObject.registerClass(
             this.location;
             this.menu;
             this.refresh = 0;
-            this.api_url = "https://api.airvisual.com/v2/city";
+            this.api_url = 'https://api.airvisual.com/v2/city';
             this._httpSession = new Soup.SessionAsync();
 
 
@@ -83,8 +83,8 @@ const AQIIndicator = GObject.registerClass(
             });
 
             // drop-down menu
-            this.location = new PopupMenu.PopupMenuItem(_(""));
-            this.lastUpdate = new PopupMenu.PopupMenuItem(_("Last update:"));
+            this.location = new PopupMenu.PopupMenuItem(_(''));
+            this.lastUpdate = new PopupMenu.PopupMenuItem(_('Last update:'));
             let refresh = new PopupMenu.PopupMenuItem(_('Refresh'));
             let showOnWebsite = new PopupMenu.PopupMenuItem(_('Show on website'));
 
@@ -92,7 +92,7 @@ const AQIIndicator = GObject.registerClass(
                 this.refreshData();
             });
             showOnWebsite.connect('activate', () => {
-                const url = `https://www.iqair.com/${this.settings.get_value("country").unpack().toLowerCase()}/${this.settings.get_value("state").unpack().toLowerCase()}/${this.settings.get_value("city").unpack().toLowerCase()}/`
+                const url = `https://www.iqair.com/${this.settings.get_value('country').unpack().toLowerCase()}/${this.settings.get_value('state').unpack().toLowerCase()}/${this.settings.get_value('city').unpack().toLowerCase()}/`
                 try {
                     Gtk.show_uri(null, url, global.get_current_time());
                 } catch (error) {
@@ -111,14 +111,14 @@ const AQIIndicator = GObject.registerClass(
             box.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
             this.add_child(box);
 
-            if (this.settings.get_value("token").unpack() !== "") {
+            if (this.settings.get_value('token').unpack() !== '') {
                 this.refreshData();
             }
         }
 
         buildRequest() {
-            const url = this.api_url + "?" + encodeURI(["city=" + this.settings.get_value("city").unpack(), "state=" + this.settings.get_value("state").unpack(), "country=" + this.settings.get_value("country").unpack(), "key=" + this.settings.get_value("token").unpack()].join("&"))
-            let request = Soup.Message.new("GET", url);
+            const url = this.api_url + '?' + encodeURI(['city=' + this.settings.get_value('city').unpack(), 'state=' + this.settings.get_value('state').unpack(), 'country=' + this.settings.get_value('country').unpack(), 'key=' + this.settings.get_value('token').unpack()].join('&'))
+            let request = Soup.Message.new('GET', url);
             request.request_headers.append('Cache-Control', 'no-cache');
             request.request_headers.append('User-Agent', 'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36');
 
@@ -131,7 +131,7 @@ const AQIIndicator = GObject.registerClass(
                 return;
             }
             this.lock = true;
-            if (this.settings.get_value("token").unpack() === '') {
+            if (this.settings.get_value('token').unpack() === '') {
                 Main.notify('[Iqair Gnome Extension] Token is required.', '');
                 this.lock = false;
                 Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
@@ -139,50 +139,50 @@ const AQIIndicator = GObject.registerClass(
             }
             this._httpSession.queue_message(this.buildRequest(), (_, response) => {
                 if (response.status_code > 299) {
-                    this.log(["Remote server error:", response.status_code, response.response_body.data]);
+                    this.log(['Remote server error:', response.status_code, response.response_body.data]);
                     return;
                 }
                 const json_data = JSON.parse(response.response_body.data);
-                if (!json_data.status || json_data.status !== "success" || !json_data.data.current || !json_data.data.current.pollution) {
-                    this.log(["Remote server error:", response.response_body.data]);
+                if (!json_data.status || json_data.status !== 'success' || !json_data.data.current || !json_data.data.current.pollution) {
+                    this.log(['Remote server error:', response.response_body.data]);
                     return;
                 }
                 let json_aqi = 0;
                 // AQI standard
-                if (this.settings.get_value("aqi").unpack() === "CN AQI") {
+                if (this.settings.get_value('aqi').unpack() === 'CN AQI') {
                     json_aqi = json_data.data.current.pollution.aqicn;
                 } else {
                     json_aqi = json_data.data.current.pollution.aqius;
                 }
                 // AQL level
                 if (json_aqi < 51) { // Good
-                    this.quality_icon.icon_name = "face-smile-symbolic"
+                    this.quality_icon.icon_name = 'face-smile-symbolic'
                 } else if (json_aqi < 101) { // Moderate
-                    this.quality_icon.icon_name = "face-plain-symbolic"
+                    this.quality_icon.icon_name = 'face-plain-symbolic'
                 } else if (json_aqi < 151) { // Unhealthy for sensitive groups
-                    this.quality_icon.icon_name = "face-sad-symbolic"
+                    this.quality_icon.icon_name = 'face-sad-symbolic'
                 } else if (json_aqi < 201) { // Unhealthy
-                    this.quality_icon.icon_name = "face-worried-symbolic"
+                    this.quality_icon.icon_name = 'face-worried-symbolic'
                 } else if (json_aqi < 301) { // Very unhealthy
-                    this.quality_icon.icon_name = "face-yawn-symbolic"
+                    this.quality_icon.icon_name = 'face-yawn-symbolic'
                 } else { // Hazardous
-                    this.quality_icon.icon_name = "face-sick-symbolic"
+                    this.quality_icon.icon_name = 'face-sick-symbolic'
                 }
-                this.log([`Update AQI from: ${this.quality_value.text} to ${json_aqi.toString() + " / " + this.settings.get_value("aqi").unpack()
+                this.log([`Update AQI from: ${this.quality_value.text} to ${json_aqi.toString() + ' / ' + this.settings.get_value('aqi').unpack()
                     }`]);
                 this.quality_value.text = json_aqi.toString();
-                if (!this.settings.get_value("hide-unit").unpack()) {
-                    this.quality_value.text += " / " + this.settings.get_value("aqi").unpack();
+                if (!this.settings.get_value('hide-unit').unpack()) {
+                    this.quality_value.text += ' / ' + this.settings.get_value('aqi').unpack();
                 }
-                this.location.label_actor.text = `${this.settings.get_value("city").unpack()}, ${this.settings.get_value("state").unpack()}, ${this.settings.get_value("country").unpack()}`;
-                this.lastUpdate.label_actor.text = "Last update: " + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
+                this.location.label_actor.text = `${this.settings.get_value('city').unpack()}, ${this.settings.get_value('state').unpack()}, ${this.settings.get_value('country').unpack()}`;
+                this.lastUpdate.label_actor.text = 'Last update: ' + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
             this.lock = false;
             Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
         }
 
         log(logs) {
-            global.log('[IqairMenuButton]', logs.join(", "));
+            global.log('[IqairMenuButton]', logs.join(', '));
         }
 
     });
@@ -195,12 +195,36 @@ class Extension {
 
     enable() {
         this._indicator = new AQIIndicator();
-        Main.panel.addToStatusArea(this._uuid, this._indicator);
+
+        const indicator_position = this._indicator.settings.get_value('panel-position').unpack()
+        if (indicator_position === 'Left') {
+            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'left');
+        } else if (indicator_position === 'Center') {
+            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'center');
+        } else {
+            Main.panel.addToStatusArea(this._uuid, this._indicator);
+        }
+
+        this._indicator.settings.connect('changed::panel-position', Lang.bind(this, this.addToPanel));
     }
 
     disable() {
         this._indicator.destroy();
         this._indicator = null;
+    }
+
+    addToPanel() {
+        this._indicator.destroy();
+        this._indicator = null;
+        this._indicator = new AQIIndicator();
+        const indicator_position = this._indicator.settings.get_value('panel-position').unpack()
+        if (indicator_position === 'Left') {
+            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'left');
+        } else if (indicator_position === 'Center') {
+            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'center');
+        } else {
+            Main.panel.addToStatusArea(this._uuid, this._indicator);
+        }
     }
 }
 
