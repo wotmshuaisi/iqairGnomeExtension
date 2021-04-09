@@ -27,7 +27,10 @@ function buildPrefsWidget() {
 
     // Create a parent widget that we'll return from this function
     let prefsWidget = new Gtk.Grid({
-        margin: 18,
+        margin_top: 18,
+        margin_bottom: 18,
+        margin_start: 18,
+        margin_end: 18,
         column_spacing: 30,
         row_spacing: 18,
         visible: true
@@ -47,13 +50,13 @@ function buildPrefsWidget() {
     }
     let aqiRadio = null;
     ['US AQI', 'CN AQI'].forEach((mode, index) => {
-        aqiRadio = new Gtk.RadioButton({
+        aqiRadio = new Gtk.ToggleButton({
             label: mode,
             group: aqiRadio,
-            halign: Gtk.Align.END,
+            halign: index === 0 ? Gtk.Align.CENTER : Gtk.Align.END,
         });
         aqiRadio.set_active(this.settings.get_string('aqi') === mode);
-        prefsWidget.attach(aqiRadio, 1 + index, 1, 1, 1);
+        prefsWidget.attach(aqiRadio, 2, 1, 1, 1);
         aqiRadio.connect('toggled', button => {
             if (button.active) {
                 this.settings.set_string('aqi', mode);
@@ -81,10 +84,11 @@ function buildPrefsWidget() {
 
     // IQAIR Token
     let token_label = new Gtk.Label({
-        label: 'IQAir Token:',
+        label: '',
         halign: Gtk.Align.START,
         visible: true
     });
+    token_label.set_markup("IQAir Token (<span foreground='#f00'><b>required</b></span>):");
     prefsWidget.attach(token_label, 0, 3, 1, 1);
     if (!this.settings.get_string('token')) {
         this.settings.set_string('token', '');
@@ -96,7 +100,6 @@ function buildPrefsWidget() {
         visible: true,
         width_chars: 36,
     });
-    token_entry.set_placeholder_text('token');
     token_entry.connect('changed', input => {
         if (input.text.length === 36) {
             this.settings.set_string('token', input.text);
@@ -226,7 +229,7 @@ function buildPrefsWidget() {
         this.settings.set_string('panel-position', panel_position_combo.active_id);
     });
     // Return our widget which will be added to the window
-    prefsWidget.show_all();
+    // prefsWidget.show_all();
     return prefsWidget;
 }
 

@@ -198,9 +198,9 @@ class Extension {
 
         const indicator_position = this._indicator.settings.get_value('panel-position').unpack()
         if (indicator_position === 'Left') {
-            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'left');
+            Main.panel.addToStatusArea(this._uuid, this._indicator, Main.panel._leftBox.get_children().length, 'left');
         } else if (indicator_position === 'Center') {
-            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'center');
+            Main.panel.addToStatusArea(this._uuid, this._indicator, Main.panel._centerBox.get_children().length, 'center');
         } else {
             Main.panel.addToStatusArea(this._uuid, this._indicator);
         }
@@ -219,9 +219,9 @@ class Extension {
         this._indicator = new AQIIndicator();
         const indicator_position = this._indicator.settings.get_value('panel-position').unpack()
         if (indicator_position === 'Left') {
-            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'left');
+            Main.panel.addToStatusArea(this._uuid, this._indicator, Main.panel._leftBox.get_children().length, 'left');
         } else if (indicator_position === 'Center') {
-            Main.panel.addToStatusArea(this._uuid, this._indicator, 1, 'center');
+            Main.panel.addToStatusArea(this._uuid, this._indicator, Main.panel._centerBox.get_children().length, 'center');
         } else {
             Main.panel.addToStatusArea(this._uuid, this._indicator);
         }
