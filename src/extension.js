@@ -48,7 +48,6 @@ const AQIIndicator = GObject.registerClass(
             this.lastUpdate;
             this.location;
             this.menu;
-            this.refresh = 0;
             this.api_url = 'https://api.airvisual.com/v2/city';
             this._httpSession = new Soup.SessionAsync();
 

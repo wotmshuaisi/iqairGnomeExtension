@@ -48,16 +48,16 @@ function buildPrefsWidget() {
     if (!this.settings.get_string('aqi')) {
         this.settings.set_string('aqi', 'US AQI');
     }
-    let aqiRadio = null;
+    let aqiToggle = null;
     ['US AQI', 'CN AQI'].forEach((mode, index) => {
-        aqiRadio = new Gtk.ToggleButton({
+        aqiToggle = new Gtk.ToggleButton({
             label: mode,
-            group: aqiRadio,
+            group: aqiToggle,
             halign: index === 0 ? Gtk.Align.CENTER : Gtk.Align.END,
         });
-        aqiRadio.set_active(this.settings.get_string('aqi') === mode);
-        prefsWidget.attach(aqiRadio, 2, 1, 1, 1);
-        aqiRadio.connect('toggled', button => {
+        aqiToggle.set_active(this.settings.get_string('aqi') === mode);
+        prefsWidget.attach(aqiToggle, 2, 1, 1, 1);
+        aqiToggle.connect('toggled', button => {
             if (button.active) {
                 this.settings.set_string('aqi', mode);
             }
@@ -90,9 +90,6 @@ function buildPrefsWidget() {
     });
     token_label.set_markup("IQAir Token (<span foreground='#f00'><b>required</b></span>):");
     prefsWidget.attach(token_label, 0, 3, 1, 1);
-    if (!this.settings.get_string('token')) {
-        this.settings.set_string('token', '');
-    }
     let token_entry = new Gtk.Entry({
         text: this.settings.get_string('token'),
         halign: Gtk.Align.END,
@@ -114,9 +111,6 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(country_label, 0, 4, 1, 1);
-    if (!this.settings.get_string('country')) {
-        this.settings.set_string('country', 'USA');
-    }
     let country_combo = buildComboBox(['USA', 'China'], 'USA');
     if (this.settings.get_string('token') && this.settings.get_string('token').length == 36) {
         session.queue_message(buildRequest(settings.get_string('token'), 'countries', []), (_, response) => {
@@ -145,9 +139,6 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(state_label, 0, 5, 1, 1);
-    if (!this.settings.get_string('state')) {
-        this.settings.set_string('state', 'California');
-    }
     let state_combo = buildComboBox([], '');
     if (
         this.settings.get_string('token') &&
@@ -166,9 +157,6 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(city_label, 0, 6, 1, 1);
-    if (!this.settings.get_string('city')) {
-        this.settings.set_string('city', 'Los Angeles');
-    }
     let city_combo = buildComboBox([], '');
     if (
         this.settings.get_string('token') &&
@@ -188,9 +176,6 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(panel_position_label, 0, 7, 1, 1);
-    if (!this.settings.get_string('panel-position')) {
-        this.settings.set_string('panel-position', 'Right');
-    }
     let panel_position_combo = buildComboBox(['Left', 'Center', 'Right'], this.settings.get_string('panel-position'));
     prefsWidget.attach(panel_position_combo, 2, 7, 1, 1);
     // Link
