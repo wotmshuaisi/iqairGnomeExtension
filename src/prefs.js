@@ -50,7 +50,7 @@ function buildPrefsWidget() {
     }
     let aqiToggle = null;
     ['US AQI', 'CN AQI'].forEach((mode, index) => {
-        aqiToggle = new Gtk.ToggleButton({
+        aqiToggle = new Gtk.RadioButton({
             label: mode,
             group: aqiToggle,
             halign: index === 0 ? Gtk.Align.CENTER : Gtk.Align.END,
