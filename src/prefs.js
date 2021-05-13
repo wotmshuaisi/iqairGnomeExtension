@@ -8,8 +8,11 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 const Soup = imports.gi.Soup;
 
+const Notify = imports.gi.Notify;
+
 
 function init() {
+    Notify.init("IqairMenuButton-Settings");
 }
 
 function buildPrefsWidget() {
@@ -77,7 +80,6 @@ function buildPrefsWidget() {
     let hide_unit_switch = new Gtk.Switch({ hexpand: true, halign: Gtk.Align.END });
     hide_unit_switch.set_active(this.settings.get_boolean('hide-unit'));
     hide_unit_switch.connect('state-set', () => {
-        log([hide_unit_switch.state, hide_unit_switch.active]);
         this.settings.set_boolean('hide-unit', hide_unit_switch.active);
     });
     prefsWidget.attach(hide_unit_switch, 2, 2, 1, 1);
@@ -111,26 +113,12 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(country_label, 0, 4, 1, 1);
-    let country_combo = buildComboBox(['USA', 'China'], 'USA');
+    let countries_dropdown = new Gtk.DropDown();
     if (this.settings.get_string('token') && this.settings.get_string('token').length == 36) {
-        session.queue_message(buildRequest(settings.get_string('token'), 'countries', []), (_, response) => {
-            let json_data = parseResponse(response);
-            if (json_data === true) {
-                return;
-            }
-            country_combo.remove_all();
-            json_data.data.forEach(item => {
-                if (item['country']) {
-                    const val = item['country'];
-                    country_combo.append(val, val)
-                    if (this.settings.get_string('country') == val) {
-                        country_combo.set_active_id(val);
-                    }
-                }
-            });
-        });
+        refreshDropDown(countries_dropdown, session, this.settings, [], 'countries', 'country');
     }
-    prefsWidget.attach(country_combo, 2, 4, 1, 1);
+    prefsWidget.attach(countries_dropdown, 2, 4, 1, 1);
+
 
     // State
     let state_label = new Gtk.Label({
@@ -139,16 +127,16 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(state_label, 0, 5, 1, 1);
-    let state_combo = buildComboBox([], '');
+    let state_dropdown = new Gtk.DropDown();
     if (
         this.settings.get_string('token') &&
         this.settings.get_string('token').length == 36 &&
         this.settings.get_string('country') &&
         this.settings.get_string('country') !== ''
     ) {
-        refreshComboBox(state_combo, session, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
+        refreshDropDown(state_dropdown, session, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
     }
-    prefsWidget.attach(state_combo, 2, 5, 1, 1);
+    prefsWidget.attach(state_dropdown, 2, 5, 1, 1);
 
     // City
     let city_label = new Gtk.Label({
@@ -157,7 +145,7 @@ function buildPrefsWidget() {
         visible: true
     });
     prefsWidget.attach(city_label, 0, 6, 1, 1);
-    let city_combo = buildComboBox([], '');
+    let city_dropdown = new Gtk.DropDown();
     if (
         this.settings.get_string('token') &&
         this.settings.get_string('token').length == 36 &&
@@ -166,9 +154,9 @@ function buildPrefsWidget() {
         this.settings.get_string('state') &&
         this.settings.get_string('state') !== ''
     ) {
-        refreshComboBox(city_combo, session, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
+        refreshDropDown(city_dropdown, session, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
     }
-    prefsWidget.attach(city_combo, 2, 6, 1, 1);
+    prefsWidget.attach(city_dropdown, 2, 6, 1, 1);
     // Position in panel
     let panel_position_label = new Gtk.Label({
         label: 'Position in panel:',
@@ -187,55 +175,55 @@ function buildPrefsWidget() {
     });
     prefsWidget.attach(token_link_button, 2, 10, 1, 1);
 
-
-
     // ComboBox events
-    country_combo.connect('changed', () => {
-        if (country_combo.active_id && country_combo.active_id !== '') {
-            this.settings.set_string('country', country_combo.active_id);
-            state_combo.remove_all();
-            refreshComboBox(state_combo, session, this.settings, ['country=' + this.settings.get_string('country')], 'states', 'state');
-            city_combo.remove_all();
+    countries_dropdown.connect('notify::selected', () => {
+        this.settings.set_string('country', countries_dropdown.get_selected_item().get_string());
+        city_dropdown.set_model(new Gtk.StringList([]));
+        refreshDropDown(state_dropdown, session, this.settings, ['country=' + this.settings.get_string('country')], 'states', 'state');
+    });
+
+    state_dropdown.connect('notify::selected', () => {
+        if (state_dropdown.get_selected_item()) {
+            this.settings.set_string('state', state_dropdown.get_selected_item().get_string());
+            refreshDropDown(city_dropdown, session, this.settings, ['country=' + this.settings.get_string('country'), , 'state=' + this.settings.get_string('state')], 'cities', 'city');
         }
-    })
-    state_combo.connect('changed', () => {
-        if (state_combo.active_id && state_combo.active_id !== '') {
-            this.settings.set_string('state', state_combo.active_id);
-            city_combo.remove_all();
-            refreshComboBox(city_combo, session, this.settings, ['country=' + this.settings.get_string('country'), , 'state=' + this.settings.get_string('state')], 'cities', 'city');
+    });
+
+    city_dropdown.connect('notify::selected', () => {
+        if (city_dropdown.get_selected_item()) {
+            this.settings.set_string('city', city_dropdown.get_selected_item().get_string());
         }
-    })
-    city_combo.connect('changed', () => {
-        if (city_combo.active_id && city_combo.active_id !== '') {
-            this.settings.set_string('city', city_combo.active_id);
-        }
-    })
+    });
+
     panel_position_combo.connect('changed', () => {
         this.settings.set_string('panel-position', panel_position_combo.active_id);
     });
     // Return our widget which will be added to the window
-    // prefsWidget.show_all();
     return prefsWidget;
 }
 
-function refreshComboBox(box, session, settings, params, target, inlineTarget) {
+function refreshDropDown(dropdown, session, settings, params, target, inlineTarget) {
     session.queue_message(buildRequest(settings.get_string('token'), target, params), (_, response) => {
         let json_data = parseResponse(response);
         if (json_data === true) {
             return;
         }
-        box.remove_all();
-        json_data.data.forEach(item => {
+        let model = new Gtk.StringList();
+        let selected = 0;
+        json_data.data.forEach((item, index) => {
             if (item[inlineTarget]) {
                 const val = item[inlineTarget];
-                box.append(val, val)
+                model.append(val)
                 if (settings.get_string(inlineTarget) == val) {
-                    box.set_active_id(val);
+                    selected = index;
                 }
             }
         });
+        dropdown.set_model(model);
+        dropdown.set_selected(selected);
     });
 }
+
 
 function buildComboBox(options, active) {
     let comboBox = new Gtk.ComboBoxText({});
@@ -275,4 +263,9 @@ function parseResponse(response) {
 
 function log(logs) {
     print('[IqairMenuButton-Settings]', logs.join(', '));
+    new Notify.Notification({
+        summary: "IqairMenuButton-Settings",
+        body: logs.join(', '),
+        "icon-name": "dialog-information"
+    }).show();
 }

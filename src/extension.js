@@ -34,6 +34,7 @@ const PopupMenu = imports.ui.popupMenu;
 const Soup = imports.gi.Soup;
 const Mainloop = imports.mainloop;
 const Lang = imports.lang;
+const MessageTray = imports.ui.messageTray;
 
 const AQIIndicator = GObject.registerClass(
     class AQIIndicator extends PanelMenu.Button {
@@ -121,7 +122,7 @@ const AQIIndicator = GObject.registerClass(
             request.request_headers.append('Cache-Control', 'no-cache');
             request.request_headers.append('User-Agent', 'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36');
 
-            // this.log([url]); // debug
+            // this.log(false,[url]); // debug
             return request;
         }
 
@@ -138,12 +139,12 @@ const AQIIndicator = GObject.registerClass(
             }
             this._httpSession.queue_message(this.buildRequest(), (_, response) => {
                 if (response.status_code > 299) {
-                    this.log(['Remote server error:', response.status_code, response.response_body.data]);
+                    this.log(true, ['Remote server error:', response.status_code, response.response_body.data]);
                     return;
                 }
                 const json_data = JSON.parse(response.response_body.data);
                 if (!json_data.status || json_data.status !== 'success' || !json_data.data.current || !json_data.data.current.pollution) {
-                    this.log(['Remote server error:', response.response_body.data]);
+                    this.log(true, ['Remote server error:', response.response_body.data]);
                     return;
                 }
                 let json_aqi = 0;
@@ -167,7 +168,7 @@ const AQIIndicator = GObject.registerClass(
                 } else { // Hazardous
                     this.quality_icon.icon_name = 'face-sick-symbolic'
                 }
-                this.log([`Update AQI from: ${this.quality_value.text} to ${json_aqi.toString() + ' / ' + this.settings.get_value('aqi').unpack()
+                this.log(false, [`Update AQI from: ${this.quality_value.text} to ${json_aqi.toString() + ' / ' + this.settings.get_value('aqi').unpack()
                     }`]);
                 this.quality_value.text = json_aqi.toString();
                 if (!this.settings.get_value('hide-unit').unpack()) {
@@ -180,8 +181,15 @@ const AQIIndicator = GObject.registerClass(
             Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
         }
 
-        log(logs) {
+        log(isErr, logs) {
             global.log('[IqairMenuButton]', logs.join(', '));
+            if (isErr) {
+                let notifSource = new MessageTray.SystemNotificationSource();
+                let notification = new MessageTray.Notification(notifSource, "IQAir error", logs.join(', '));
+                Main.messageTray.add(notifSource);
+                notification.setTransient(true);
+                notifSource.showNotification(notification);
+            }
         }
 
     });
