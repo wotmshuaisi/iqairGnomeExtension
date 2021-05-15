@@ -9,7 +9,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 const Soup = imports.gi.Soup;
 
 const Notify = imports.gi.Notify;
-
+const NONE_DROPDOWN_TEXT = "(None)";
 
 function init() {
     Notify.init("IqairMenuButton-Settings");
@@ -132,7 +132,7 @@ function buildPrefsWidget() {
         this.settings.get_string('token') &&
         this.settings.get_string('token').length == 36 &&
         this.settings.get_string('country') &&
-        this.settings.get_string('country') !== ''
+        this.settings.get_string('country') != ''
     ) {
         refreshDropDown(state_dropdown, session, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
     }
@@ -171,33 +171,65 @@ function buildPrefsWidget() {
         label: 'Get an API token',
         uri: 'https://www.iqair.com/us/dashboard/api',
         halign: Gtk.Align.END,
-        visible: true
     });
-    prefsWidget.attach(token_link_button, 2, 10, 1, 1);
+    prefsWidget.attach(token_link_button, 2, 8, 1, 1);
+    // Save button
+    let save_button = new Gtk.Button({
+        label: "Save",
+        halign: Gtk.Align.FILL,
+    });
+    save_button.get_style_context().add_class("suggested-action");
+    prefsWidget.attach(save_button, 2, 9, 1, 1);
 
     // ComboBox events
     countries_dropdown.connect('notify::selected', () => {
-        this.settings.set_string('country', countries_dropdown.get_selected_item().get_string());
-        city_dropdown.set_model(new Gtk.StringList([]));
-        refreshDropDown(state_dropdown, session, this.settings, ['country=' + this.settings.get_string('country')], 'states', 'state');
-    });
-
-    state_dropdown.connect('notify::selected', () => {
-        if (state_dropdown.get_selected_item()) {
-            this.settings.set_string('state', state_dropdown.get_selected_item().get_string());
-            refreshDropDown(city_dropdown, session, this.settings, ['country=' + this.settings.get_string('country'), , 'state=' + this.settings.get_string('state')], 'cities', 'city');
+        let val = countries_dropdown.get_selected_item();
+        if (val) {
+            city_dropdown.set_model(new Gtk.StringList([]));
+        }
+        if (val && val.get_string() != NONE_DROPDOWN_TEXT) {
+            city_dropdown.set_model(new Gtk.StringList([]));
+            refreshDropDown(state_dropdown, session, this.settings, ['country=' + val.get_string()], 'states', 'state');
         }
     });
 
-    city_dropdown.connect('notify::selected', () => {
-        if (city_dropdown.get_selected_item()) {
-            this.settings.set_string('city', city_dropdown.get_selected_item().get_string());
+    state_dropdown.connect('notify::selected', () => {
+        let val = state_dropdown.get_selected_item();
+        if (val) {
+            city_dropdown.set_model(new Gtk.StringList([]));
+        }
+        if (val && val.get_string() != NONE_DROPDOWN_TEXT && countries_dropdown.get_selected_item() && countries_dropdown.get_selected_item().get_string() != NONE_DROPDOWN_TEXT) {
+            refreshDropDown(city_dropdown, session, this.settings, ['country=' + countries_dropdown.get_selected_item().get_string(), , 'state=' + val.get_string()], 'cities', 'city');
         }
     });
 
     panel_position_combo.connect('changed', () => {
         this.settings.set_string('panel-position', panel_position_combo.active_id);
     });
+
+    save_button.connect('clicked', () => {
+        if (
+            !countries_dropdown.get_selected_item() ||
+            !state_dropdown.get_selected_item() ||
+            !city_dropdown.get_selected_item() ||
+            countries_dropdown.get_selected_item().get_string() == NONE_DROPDOWN_TEXT ||
+            state_dropdown.get_selected_item().get_string() == NONE_DROPDOWN_TEXT ||
+            city_dropdown.get_selected_item().get_string() == NONE_DROPDOWN_TEXT
+        ) {
+            log(['Country, State, City are not allowed to be empty.']);
+            return;
+        }
+        try {
+            this.settings.set_string('country', countries_dropdown.get_selected_item().get_string());
+            this.settings.set_string('state', state_dropdown.get_selected_item().get_string());
+            this.settings.set_string('city', city_dropdown.get_selected_item().get_string());
+        } catch (error) {
+            log([error]);
+            return;
+        }
+        log(['Saved.']);
+    });
+
     // Return our widget which will be added to the window
     return prefsWidget;
 }
@@ -209,18 +241,17 @@ function refreshDropDown(dropdown, session, settings, params, target, inlineTarg
             return;
         }
         let model = new Gtk.StringList();
-        let selected = 0;
+        model.append(NONE_DROPDOWN_TEXT);
+        dropdown.set_model(model);
         json_data.data.forEach((item, index) => {
             if (item[inlineTarget]) {
                 const val = item[inlineTarget];
-                model.append(val)
+                model.append(val);
                 if (settings.get_string(inlineTarget) == val) {
-                    selected = index;
+                    dropdown.selected = index + 1;
                 }
             }
         });
-        dropdown.set_model(model);
-        dropdown.set_selected(selected);
     });
 }
 
