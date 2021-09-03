@@ -178,7 +178,7 @@ const AQIIndicator = GObject.registerClass(
                 this.lastUpdate.label_actor.text = 'Last update: ' + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
             this.lock = false;
-            Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
+            Mainloop.timeout_add_seconds(3600 * 2, Lang.bind(this, this.refreshData));
         }
 
         log(isErr, logs) {
