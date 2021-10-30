@@ -284,7 +284,7 @@ function buildRequest(token, field, arr) {
 
 function parseResponse(response) {
     if (response.status_code > 299) {
-        log(['Remote server error:', response.status_code, response.response_body.dat]);
+        log(['Remote server error:', response.status_code, response.response_body.data]);
         return true;
     }
     const json_data = JSON.parse(response.response_body.data);
