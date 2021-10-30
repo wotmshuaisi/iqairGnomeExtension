@@ -33,7 +33,6 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Soup = imports.gi.Soup;
 const Mainloop = imports.mainloop;
-const Lang = imports.lang;
 const MessageTray = imports.ui.messageTray;
 
 const AQIIndicator = GObject.registerClass(
@@ -117,7 +116,9 @@ const AQIIndicator = GObject.registerClass(
         }
 
         buildRequest() {
-            const url = this.api_url + '?' + encodeURI(['city=' + this.settings.get_value('city').unpack(), 'state=' + this.settings.get_value('state').unpack(), 'country=' + this.settings.get_value('country').unpack(), 'key=' + this.settings.get_value('token').unpack()].join('&'))
+            let params = ['city=' + this.settings.get_value('city').unpack(), 'state=' + this.settings.get_value('state').unpack(), 'country=' + this.settings.get_value('country').unpack(), 'key=' + this.settings.get_value('token').unpack()];
+            this.paramNormaliser(params);
+            const url = this.api_url + '?' + encodeURI(params.join('&'))
             let request = Soup.Message.new('GET', url);
             request.request_headers.append('Cache-Control', 'no-cache');
             request.request_headers.append('User-Agent', 'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36');
@@ -134,7 +135,7 @@ const AQIIndicator = GObject.registerClass(
             if (this.settings.get_value('token').unpack() === '') {
                 Main.notify('[Iqair Gnome Extension] Token is required.', '');
                 this.lock = false;
-                Mainloop.timeout_add_seconds(2700, Lang.bind(this, this.refreshData));
+                Mainloop.timeout_add_seconds(2700, () => { this.refreshData() });
                 return;
             }
             this._httpSession.queue_message(this.buildRequest(), (_, response) => {
@@ -178,7 +179,7 @@ const AQIIndicator = GObject.registerClass(
                 this.lastUpdate.label_actor.text = 'Last update: ' + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
             this.lock = false;
-            Mainloop.timeout_add_seconds(3600 * 2, Lang.bind(this, this.refreshData));
+            Mainloop.timeout_add_seconds(3600 * 2, () => { this.refreshData });
         }
 
         log(isErr, logs) {
@@ -192,6 +193,15 @@ const AQIIndicator = GObject.registerClass(
             }
         }
 
+        paramNormaliser(params) {
+            for (let index = 0; index < params.length; index++) {
+                let keyValue = params[index].split('=');
+                if (keyValue.length === 2) {
+                    keyValue[1] = keyValue[1].replace(/[^\w]+/gi, '-');
+                    params[index] = keyValue[0] + '=' + keyValue[1];
+                }
+            }
+        }
     });
 
 class Extension {
@@ -211,8 +221,7 @@ class Extension {
         } else {
             Main.panel.addToStatusArea(this._uuid, this._indicator);
         }
-
-        this._indicator.settings.connect('changed::panel-position', Lang.bind(this, this.addToPanel));
+        this._indicator.settings.connect('changed::panel-position', () => { this.addToPanel() });
     }
 
     disable() {
@@ -221,6 +230,7 @@ class Extension {
     }
 
     addToPanel() {
+        print('Reloading Iqair extension');
         this._indicator.destroy();
         this._indicator = null;
         this._indicator = new AQIIndicator();

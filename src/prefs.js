@@ -1,5 +1,7 @@
 'use strict';
 
+imports.gi.versions.Soup = '2.4';
+
 const Gio = imports.gi.Gio;
 const Gtk = imports.gi.Gtk;
 const GObject = imports.gi.GObject;
@@ -38,8 +40,7 @@ function buildPrefsWidget() {
         row_spacing: 18,
         visible: true
     });
-    let session = new Soup.SessionAsync();
-
+    let session = Soup.Session.new();
 
     // AQI Unit
     let aqi_label = new Gtk.Label({
@@ -272,16 +273,18 @@ function buildRequest(token, field, arr) {
     arr.forEach(item => {
         params.push(item);
     })
+    paramNormaliser(params);
     const url = 'https://api.airvisual.com/v2/' + field + '?' + encodeURI(params.join('&'));
     let request = Soup.Message.new('GET', url);
     request.request_headers.append('Cache-Control', 'no-cache');
     request.request_headers.append('User-Agent', 'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36');
+    log(['Built request', url], false);
     return request;
 }
 
 function parseResponse(response) {
     if (response.status_code > 299) {
-        log(['Remote server error:', response.status_code, response.response_body.data]);
+        log(['Remote server error:', response.status_code, response.response_body.dat]);
         return true;
     }
     const json_data = JSON.parse(response.response_body.data);
@@ -292,11 +295,23 @@ function parseResponse(response) {
     return json_data;
 }
 
-function log(logs) {
+function log(logs, notification = true) {
     print('[IqairMenuButton-Settings]', logs.join(', '));
-    new Notify.Notification({
-        summary: "IqairMenuButton-Settings",
-        body: logs.join(', '),
-        "icon-name": "dialog-information"
-    }).show();
+    if (notification) {
+        new Notify.Notification({
+            summary: "IqairMenuButton-Settings",
+            body: logs.join(', '),
+            "icon-name": "dialog-information"
+        }).show();
+    }
+}
+
+function paramNormaliser(params) {
+    for (let index = 0; index < params.length; index++) {
+        let keyValue = params[index].split('=');
+        if (keyValue.length === 2) {
+            keyValue[1] = keyValue[1].replace(/[^\w]+/gi, '-');
+            params[index] = keyValue[0] + '=' + keyValue[1];
+        }
+    }
 }
