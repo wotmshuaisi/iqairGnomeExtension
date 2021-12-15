@@ -4,6 +4,7 @@
   "url": "https://github.com/wotmshuaisi/iqairGnomeExtension",
   "uuid": "iqair@wotmshuaisi_github",
   "shell-version": [
-    "40"
+    "40",
+    "41"
   ]
 }
