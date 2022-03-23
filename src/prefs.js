@@ -40,7 +40,6 @@ function buildPrefsWidget() {
         row_spacing: 18,
         visible: true
     });
-    let session = Soup.Session.new();
 
     // AQI Unit
     let aqi_label = new Gtk.Label({
@@ -116,7 +115,7 @@ function buildPrefsWidget() {
     prefsWidget.attach(country_label, 0, 4, 1, 1);
     let countries_dropdown = new Gtk.DropDown();
     if (this.settings.get_string('token') && this.settings.get_string('token').length == 36) {
-        refreshDropDown(countries_dropdown, session, this.settings, [], 'countries', 'country');
+        refreshDropDown(countries_dropdown, this.settings, [], 'countries', 'country');
     }
     prefsWidget.attach(countries_dropdown, 2, 4, 1, 1);
 
@@ -135,7 +134,7 @@ function buildPrefsWidget() {
         this.settings.get_string('country') &&
         this.settings.get_string('country') != ''
     ) {
-        refreshDropDown(state_dropdown, session, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
+        refreshDropDown(state_dropdown, this.settings, ['country=' + settings.get_string('country')], 'states', 'state');
     }
     prefsWidget.attach(state_dropdown, 2, 5, 1, 1);
 
@@ -155,7 +154,7 @@ function buildPrefsWidget() {
         this.settings.get_string('state') &&
         this.settings.get_string('state') !== ''
     ) {
-        refreshDropDown(city_dropdown, session, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
+        refreshDropDown(city_dropdown, this.settings, ['country=' + settings.get_string('country'), 'state=' + settings.get_string('state')], 'cities', 'city');
     }
     prefsWidget.attach(city_dropdown, 2, 6, 1, 1);
     // Position in panel
@@ -190,7 +189,7 @@ function buildPrefsWidget() {
         }
         if (val && val.get_string() != NONE_DROPDOWN_TEXT) {
             city_dropdown.set_model(new Gtk.StringList([]));
-            refreshDropDown(state_dropdown, session, this.settings, ['country=' + val.get_string()], 'states', 'state');
+            refreshDropDown(state_dropdown, this.settings, ['country=' + val.get_string()], 'states', 'state');
         }
     });
 
@@ -200,7 +199,7 @@ function buildPrefsWidget() {
             city_dropdown.set_model(new Gtk.StringList([]));
         }
         if (val && val.get_string() != NONE_DROPDOWN_TEXT && countries_dropdown.get_selected_item() && countries_dropdown.get_selected_item().get_string() != NONE_DROPDOWN_TEXT) {
-            refreshDropDown(city_dropdown, session, this.settings, ['country=' + countries_dropdown.get_selected_item().get_string(), , 'state=' + val.get_string()], 'cities', 'city');
+            refreshDropDown(city_dropdown, this.settings, ['country=' + countries_dropdown.get_selected_item().get_string(), , 'state=' + val.get_string()], 'cities', 'city');
         }
     });
 
@@ -235,7 +234,8 @@ function buildPrefsWidget() {
     return prefsWidget;
 }
 
-function refreshDropDown(dropdown, session, settings, params, target, inlineTarget) {
+function refreshDropDown(dropdown, settings, params, target, inlineTarget) {
+    let session = Soup.Session.new();
     session.queue_message(buildRequest(settings.get_string('token'), target, params), (_, response) => {
         let json_data = parseResponse(response);
         if (json_data === true) {
