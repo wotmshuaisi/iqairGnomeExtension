@@ -136,6 +136,7 @@ const AQIIndicator = GObject.registerClass(
             if (this.settings.get_value('token').unpack() === '') {
                 Main.notify('[Iqair Gnome Extension] Token is required.', '');
                 this.lock = false;
+                this.disable();
                 this.periodic_task = Mainloop.timeout_add_seconds(2700, () => { this.refreshData() });
                 return;
             }
@@ -180,6 +181,7 @@ const AQIIndicator = GObject.registerClass(
                 this.lastUpdate.label_actor.text = 'Last update: ' + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
             this.lock = false;
+            this.disable();
             this.periodic_task = Mainloop.timeout_add_seconds(3600 * 2, () => { this.refreshData });
         }
 
