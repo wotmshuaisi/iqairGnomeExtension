@@ -136,7 +136,7 @@ const AQIIndicator = GObject.registerClass(
             if (this.settings.get_value('token').unpack() === '') {
                 Main.notify('[Iqair Gnome Extension] Token is required.', '');
                 this.lock = false;
-                this.disable();
+                this.purgeBackgroundTask();
                 this.periodic_task = Mainloop.timeout_add_seconds(2700, () => { this.refreshData() });
                 return;
             }
@@ -181,7 +181,7 @@ const AQIIndicator = GObject.registerClass(
                 this.lastUpdate.label_actor.text = 'Last update: ' + new Date(json_data.data.current.pollution.ts).toLocaleTimeString();;
             });
             this.lock = false;
-            this.disable();
+            this.purgeBackgroundTask();
             this.periodic_task = Mainloop.timeout_add_seconds(3600 * 2, () => { this.refreshData });
         }
 
@@ -206,10 +206,10 @@ const AQIIndicator = GObject.registerClass(
             }
         }
         
-        disable() {
+        purgeBackgroundTask() {
             if (this.periodic_task) {
                 GLib.Source.remove(this.periodic_task);
-                this,this.periodic_task = null;
+                this.periodic_task = null;
             }
         }
     });
@@ -235,14 +235,14 @@ class Extension {
     }
 
     disable() {
-        this._indicator.disable();
+        this._indicator.purgeBackgroundTask();
         this._indicator.destroy();
         this._indicator = null;
     }
 
     addToPanel() {
         print('Reloading Iqair extension');
-        this._indicator.disable();
+        this._indicator.purgeBackgroundTask();
         this._indicator.destroy();
         this._indicator = null;
         this._indicator = new AQIIndicator();
