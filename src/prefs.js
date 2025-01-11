@@ -1,398 +1,174 @@
-"use strict";
+import Gio from "gi://Gio";
+import Adw from "gi://Adw";
 
-const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
-const GObject = imports.gi.GObject;
+import Gtk from "gi://Gtk?version=4.0";
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Soup = imports.gi.Soup;
-const GLib = imports.gi.GLib;
+import { ExtensionPreferences, gettext as _ } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
 
-const Notify = imports.gi.Notify;
-const NONE_DROPDOWN_TEXT = "(None)";
-
-function init() {
-  Notify.init("IqairMenuButton-Settings");
-}
-
-function buildPrefsWidget() {
-  log(["Initialising"]);
-  // Copy the same GSettings code from `extension.js`
-  let gschema = Gio.SettingsSchemaSource.new_from_directory(
-    Me.dir.get_child("schemas").get_path(),
-    Gio.SettingsSchemaSource.get_default(),
-    false
-  );
-
-  this.settings = new Gio.Settings({
-    settings_schema: gschema.lookup(
-      "org.gnome.shell.extensions.iqair-gnome-extension",
-      true
-    ),
-  });
-
-  // Create a parent widget that we'll return from this function
-  let prefsWidget = new Gtk.Grid({
-    margin_top: 18,
-    margin_bottom: 18,
-    margin_start: 18,
-    margin_end: 18,
-    column_spacing: 30,
-    row_spacing: 18,
-    visible: true,
-  });
-
-  // AQI Unit
-  let aqi_label = new Gtk.Label({
-    label: "AQI Unit:",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  prefsWidget.attach(aqi_label, 0, 1, 1, 1);
-  if (!this.settings.get_string("aqi")) {
-    this.settings.set_string("aqi", "US AQI");
-  }
-  let aqiToggle = null;
-  ["US AQI", "CN AQI"].forEach((mode, index) => {
-    aqiToggle = new Gtk.ToggleButton({
-      label: mode,
-      group: aqiToggle,
-      halign: index === 0 ? Gtk.Align.CENTER : Gtk.Align.END,
+export default class IQAirPreferences extends ExtensionPreferences {
+  fillPreferencesWindow(window) {
+    this._settings = this.getSettings();
+    // Create a preferences page, with a single group
+    const page = new Adw.PreferencesPage({
+      title: _("IQAir Gnome Extension - Settings"),
+      icon_name: "dialog-information-symbolic",
     });
-    aqiToggle.set_active(this.settings.get_string("aqi") === mode);
-    prefsWidget.attach(aqiToggle, 2, 1, 1, 1);
-    aqiToggle.connect("toggled", (button) => {
-      if (button.active) {
-        this.settings.set_string("aqi", mode);
-      }
+    window.add(page);
+    this._page = page;
+
+    // Token
+    page.add(this._create_token_options());
+
+    // Country
+    page.add(this._create_country_options());
+
+    // State
+    page.add(this._create_state_options());
+
+    // City
+    page.add(this._create_city_options());
+
+    // Station
+    page.add(this._create_station_options());
+
+    // AQI
+    page.add(this._create_aqi_unit_options());
+
+    // Refresh interval
+    page.add(this._create_refresh_interval_options());
+
+    // Panel position
+    page.add(this._create_panel_position_options());
+  }
+
+  _create_token_options() {
+    const tokenGroup = new Adw.PreferencesGroup({ title: "IQAir Token" });
+
+    const tokenRow = new Adw.EntryRow({
+      title: "Token",
+      tooltip_text: "Visit https://www.iqair.com/air-quality-monitors/api for more information.",
+      show_apply_button: true,
     });
-  });
 
-  // Hide AQI Unit
-  let aqi_hide_label = new Gtk.Label({
-    label: "Hide AQI unit:",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  prefsWidget.attach(aqi_hide_label, 0, 2, 1, 1);
-  if (!this.settings.get_boolean("hide-unit")) {
-    this.settings.set_boolean("hide-unit", false);
+    this._settings.bind("token", tokenRow, "text", Gio.SettingsBindFlags.DEFAULT);
+    // this._settings.set_string("token", "www.rrr.com");
+    // tokenRow.connect("apply", (e, v) =_create_station_options
+    //   this._settings.set_string("token", e.get_text());
+    // });
+
+    tokenGroup.add(tokenRow);
+    return tokenGroup;
   }
-  let hide_unit_switch = new Gtk.Switch({
-    hexpand: true,
-    halign: Gtk.Align.END,
-  });
-  hide_unit_switch.set_active(this.settings.get_boolean("hide-unit"));
-  hide_unit_switch.connect("state-set", () => {
-    this.settings.set_boolean("hide-unit", hide_unit_switch.active);
-  });
-  prefsWidget.attach(hide_unit_switch, 2, 2, 1, 1);
 
-  // IQAIR Token
-  let token_label = new Gtk.Label({
-    label: "",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  token_label.set_markup(
-    "IQAir Token (<span foreground='#f00'><b>required</b></span>):"
-  );
-  prefsWidget.attach(token_label, 0, 3, 1, 1);
-  let token_entry = new Gtk.Entry({
-    text: this.settings.get_string("token"),
-    halign: Gtk.Align.END,
-    editable: true,
-    visible: true,
-    width_chars: 36,
-  });
-  token_entry.connect("changed", (input) => {
-    if (input.text.length === 36) {
-      this.settings.set_string("token", input.text);
-    }
-  });
-  prefsWidget.attach(token_entry, 2, 3, 1, 1);
+  _create_country_options() {
+    const countryGroup = new Adw.PreferencesGroup({ title: "Country" });
 
-  // Country
-  let country_label = new Gtk.Label({
-    label: "Country:",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  prefsWidget.attach(country_label, 0, 4, 1, 1);
-  let countries_dropdown = new Gtk.DropDown();
-  if (
-    this.settings.get_string("token") &&
-    this.settings.get_string("token").length == 36
-  ) {
-    refreshDropDown(
-      countries_dropdown,
-      this.settings,
-      [],
-      "countries",
-      "country"
-    );
-  }
-  prefsWidget.attach(countries_dropdown, 2, 4, 1, 1);
-
-  // State
-  let state_label = new Gtk.Label({
-    label: "State:",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  prefsWidget.attach(state_label, 0, 5, 1, 1);
-  let state_dropdown = new Gtk.DropDown();
-  if (
-    this.settings.get_string("token") &&
-    this.settings.get_string("token").length == 36 &&
-    this.settings.get_string("country") &&
-    this.settings.get_string("country") != ""
-  ) {
-    refreshDropDown(
-      state_dropdown,
-      this.settings,
-      ["country=" + settings.get_string("country")],
-      "states",
-      "state"
-    );
-  }
-  prefsWidget.attach(state_dropdown, 2, 5, 1, 1);
-
-  // City
-  let city_label = new Gtk.Label({
-    label: "City:",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  prefsWidget.attach(city_label, 0, 6, 1, 1);
-  let city_dropdown = new Gtk.DropDown();
-  if (
-    this.settings.get_string("token") &&
-    this.settings.get_string("token").length == 36 &&
-    this.settings.get_string("country") &&
-    this.settings.get_string("country") !== "" &&
-    this.settings.get_string("state") &&
-    this.settings.get_string("state") !== ""
-  ) {
-    refreshDropDown(
-      city_dropdown,
-      this.settings,
-      [
-        "country=" + settings.get_string("country"),
-        "state=" + settings.get_string("state"),
-      ],
-      "cities",
-      "city"
-    );
-  }
-  prefsWidget.attach(city_dropdown, 2, 6, 1, 1);
-  // Position in panel
-  let panel_position_label = new Gtk.Label({
-    label: "Position in panel:",
-    halign: Gtk.Align.START,
-    visible: true,
-  });
-  prefsWidget.attach(panel_position_label, 0, 7, 1, 1);
-  let panel_position_combo = buildComboBox(
-    ["Left", "Center", "Right"],
-    this.settings.get_string("panel-position")
-  );
-  prefsWidget.attach(panel_position_combo, 2, 7, 1, 1);
-  // Link
-  let token_link_button = new Gtk.LinkButton({
-    label: "Get an API token",
-    uri: "https://www.iqair.com/us/dashboard/api",
-    halign: Gtk.Align.END,
-  });
-  prefsWidget.attach(token_link_button, 2, 8, 1, 1);
-  // Save button
-  let save_button = new Gtk.Button({
-    label: "Save",
-    halign: Gtk.Align.FILL,
-  });
-  save_button.get_style_context().add_class("suggested-action");
-  prefsWidget.attach(save_button, 2, 9, 1, 1);
-
-  // ComboBox events
-  countries_dropdown.connect("notify::selected", () => {
-    let val = countries_dropdown.get_selected_item();
-    if (val) {
-      city_dropdown.set_model(new Gtk.StringList([]));
-    }
-    if (val && val.get_string() != NONE_DROPDOWN_TEXT) {
-      city_dropdown.set_model(new Gtk.StringList([]));
-      refreshDropDown(
-        state_dropdown,
-        this.settings,
-        ["country=" + val.get_string()],
-        "states",
-        "state"
-      );
-    }
-  });
-
-  state_dropdown.connect("notify::selected", () => {
-    let val = state_dropdown.get_selected_item();
-    if (val) {
-      city_dropdown.set_model(new Gtk.StringList([]));
-    }
-    if (
-      val &&
-      val.get_string() != NONE_DROPDOWN_TEXT &&
-      countries_dropdown.get_selected_item() &&
-      countries_dropdown.get_selected_item().get_string() != NONE_DROPDOWN_TEXT
-    ) {
-      refreshDropDown(
-        city_dropdown,
-        this.settings,
-        [
-          "country=" + countries_dropdown.get_selected_item().get_string(),
-          ,
-          "state=" + val.get_string(),
-        ],
-        "cities",
-        "city"
-      );
-    }
-  });
-
-  panel_position_combo.connect("changed", () => {
-    this.settings.set_string("panel-position", panel_position_combo.active_id);
-  });
-
-  save_button.connect("clicked", () => {
-    if (
-      !countries_dropdown.get_selected_item() ||
-      !state_dropdown.get_selected_item() ||
-      !city_dropdown.get_selected_item() ||
-      countries_dropdown.get_selected_item().get_string() ==
-        NONE_DROPDOWN_TEXT ||
-      state_dropdown.get_selected_item().get_string() == NONE_DROPDOWN_TEXT ||
-      city_dropdown.get_selected_item().get_string() == NONE_DROPDOWN_TEXT
-    ) {
-      log(["Country, State, City are not allowed to be empty."]);
-      return;
-    }
-    try {
-      this.settings.set_string(
-        "country",
-        countries_dropdown.get_selected_item().get_string()
-      );
-      this.settings.set_string(
-        "state",
-        state_dropdown.get_selected_item().get_string()
-      );
-      this.settings.set_string(
-        "city",
-        city_dropdown.get_selected_item().get_string()
-      );
-    } catch (error) {
-      log([error]);
-      return;
-    }
-    log(["Saved."]);
-  });
-
-  // Return our widget which will be added to the window
-  return prefsWidget;
-}
-
-function refreshDropDown(dropdown, settings, params, target, inlineTarget) {
-  setInterval(() => {
-    return;
-  }, 1000);
-
-  const session = new Soup.Session();
-  let msg = buildRequest(settings.get_string("token"), target, params);
-
-  let response = session.send_and_read(msg, null);
-  try {
-    response = parseResponse(msg.get_status(), response.get_data());
-    if (response === true) {
-      return;
-    }
-    let model = new Gtk.StringList();
-    model.append(NONE_DROPDOWN_TEXT);
-    dropdown.set_model(model);
-    response.data.forEach((item, index) => {
-      if (item[inlineTarget]) {
-        const val = item[inlineTarget];
-        model.append(val);
-        if (settings.get_string(inlineTarget) == val) {
-          dropdown.selected = index + 1;
-        }
-      }
+    const countryRow = new Adw.EntryRow({
+      title: "Country",
+      tooltip_text: "Visit https://www.iqair.com/ for more information.",
+      show_apply_button: true,
     });
-  } catch (e) {
-    log([JSON.parse(response.get_data()).data.message]);
-    return;
+
+    this._settings.bind("country", countryRow, "text", Gio.SettingsBindFlags.DEFAULT);
+
+    countryGroup.add(countryRow);
+    return countryGroup;
   }
-}
 
-function buildComboBox(options, active) {
-  let comboBox = new Gtk.ComboBoxText({});
-  options.forEach((val) => {
-    comboBox.append(val, val);
-    if (active == val) {
-      comboBox.set_active_id(val);
-    }
-  });
-  return comboBox;
-}
+  _create_state_options() {
+    const stateGroup = new Adw.PreferencesGroup({ title: "State" });
 
-function buildRequest(token, field, arr) {
-  let params = ["key=" + token];
-  arr.forEach((item) => {
-    params.push(item);
-  });
-  paramNormaliser(params);
-  const url =
-    "https://api.airvisual.com/v2/" + field + "?" + encodeURI(params.join("&"));
-  let request = Soup.Message.new("GET", url);
-  request.request_headers.append("Cache-Control", "no-cache");
-  request.request_headers.append(
-    "User-Agent",
-    "Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.84 Safari/537.36"
-  );
-  log(["Built request", url], false);
-  return request;
-}
+    const stateRow = new Adw.EntryRow({
+      title: "State",
+      tooltip_text: "Visit https://www.iqair.com/ for more information.",
+      show_apply_button: true,
+    });
 
-function parseResponse(status, response) {
-  if (status > 299) {
-    log([
-      "Remote server error:",
-      status,
-      new TextDecoder("utf-8").decode(response),
-    ]);
-    return true;
+    this._settings.bind("state", stateRow, "text", Gio.SettingsBindFlags.DEFAULT);
+
+    stateGroup.add(stateRow);
+    return stateGroup;
   }
-  const json_data = JSON.parse(new TextDecoder("utf-8").decode(response));
-  if (!json_data.status || json_data.status !== "success" || !json_data.data) {
-    log(["Remote server error:", new TextDecoder("utf-8").decode(response)]);
-    return true;
-  }
-  return json_data;
-}
 
-function log(logs, notification = true) {
-  print("[IqairMenuButton-Settings]", logs.join(", "));
-  if (notification) {
-    new Notify.Notification({
-      summary: "IqairMenuButton-Settings",
-      body: logs.join(", "),
-      "icon-name": "dialog-information",
-    }).show();
-  }
-}
+  _create_city_options() {
+    const cityGroup = new Adw.PreferencesGroup({ title: "City" });
 
-function paramNormaliser(params) {
-  for (let index = 0; index < params.length; index++) {
-    let keyValue = params[index].split("=");
-    if (keyValue.length === 2) {
-      keyValue[1] = keyValue[1].replace(/[^\w]+/gi, "-");
-      params[index] = keyValue[0] + "=" + keyValue[1];
-    }
+    const cityRow = new Adw.EntryRow({
+      title: "City",
+      tooltip_text: "Visit https://www.iqair.com/ for more information.",
+      show_apply_button: true,
+    });
+
+    this._settings.bind("city", cityRow, "text", Gio.SettingsBindFlags.DEFAULT);
+
+    cityGroup.add(cityRow);
+    return cityGroup;
+  }
+
+  _create_station_options() {
+    const stationGroup = new Adw.PreferencesGroup({ title: "Station" });
+
+    const stationRow = new Adw.EntryRow({
+      title: "Station",
+      tooltip_text: "Visit https://www.iqair.com/ for more information.",
+      show_apply_button: true,
+    });
+
+    this._settings.bind("station", stationRow, "text", Gio.SettingsBindFlags.DEFAULT);
+
+    stationGroup.add(stationRow);
+    return stationGroup;
+  }
+
+  _create_refresh_interval_options() {
+    const refreshGroup = new Adw.PreferencesGroup({ title: "Refresh Interval" });
+
+    const refreshRow = new Adw.SpinRow({
+      title: "Refresh Interval (Minutes)",
+      subtitle: "Set how often to refresh the AQI.",
+      adjustment: new Gtk.Adjustment({
+        lower: 1,
+        upper: 120,
+        step_increment: 1,
+      }),
+    });
+    this._settings.bind("refresh-interval", refreshRow, "value", Gio.SettingsBindFlags.DEFAULT);
+
+    refreshGroup.add(refreshRow);
+    return refreshGroup;
+  }
+
+  _create_aqi_unit_options() {
+    const aqiGroup = new Adw.PreferencesGroup({ title: "AQI Unit" });
+
+    const aqiModel = new Gtk.StringList();
+    ["US AQI", "CN AQI"].forEach((pos) => aqiModel.append(pos));
+
+    const aqiRow = new Adw.ComboRow({
+      title: "AQI Unit",
+      subtitle: "Select the aqi unit of the indicator on the panel.",
+      model: aqiModel,
+    });
+    this._settings.bind("aqi", aqiRow, "selected", Gio.SettingsBindFlags.NO_SENSETIVITY);
+
+    aqiGroup.add(aqiRow);
+    return aqiGroup;
+  }
+
+  _create_panel_position_options() {
+    const positionGroup = new Adw.PreferencesGroup({ title: "Panel Position" });
+
+    const positionModel = new Gtk.StringList();
+    ["Left", "Center", "Right"].forEach((pos) => positionModel.append(pos));
+
+    const positionRow = new Adw.ComboRow({
+      title: "Panel Position",
+      subtitle: "Select the position of the indicator on the panel.",
+      model: positionModel,
+    });
+    this._settings.bind("panel-position", positionRow, "selected", Gio.SettingsBindFlags.NO_SENSETIVITY);
+
+    positionGroup.add(positionRow);
+    return positionGroup;
   }
 }

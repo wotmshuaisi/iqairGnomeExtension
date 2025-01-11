@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
     <schema id="org.gnome.shell.extensions.iqair-gnome-extension" path="/org/gnome/shell/extensions/iqair-gnome-extension/">
-        <!-- The key type "a{sb}" describes a dictionary of string-boolean pairs -->
-        <!-- See also: https://developer.gnome.org/glib/stable/gvariant-format-strings.html -->
         <key name="country" type="s">
             <default>"USA"</default>
         </key>
@@ -12,17 +10,20 @@
         <key name="city" type="s">
             <default>"Los Angeles"</default>
         </key>
+        <key name="station" type="s">
+            <default>""</default>
+        </key>
         <key name="token" type="s">
             <default>""</default>
         </key>
-        <key name="aqi" type="s">
-            <default>"US AQI"</default>
+        <key name="aqi" type="i">
+            <default>0</default>
         </key>
-        <key name="hide-unit" type="b">
-            <default>false</default>
+        <key name="refresh-interval" type="i">
+            <default>60</default>
         </key>
-        <key name="panel-position" type="s">
-            <default>"Right"</default>
+        <key name="panel-position" type="i">
+            <default>1</default>
         </key>
     </schema>
 </schemalist>
