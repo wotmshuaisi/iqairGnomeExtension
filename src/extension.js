@@ -2,6 +2,7 @@ import GObject from "gi://GObject";
 import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
+import Gio from "gi://Gio";
 import Soup from "gi://Soup?version=3.0";
 
 import { Extension, gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
@@ -28,6 +29,11 @@ const Indicator = GObject.registerClass(
       this.quality_unit;
       this.quality_icon;
       this.lastUpdate;
+      this.country = this._settings.get_value("country").unpack();
+      this.state = this._settings.get_value("state").unpack();
+      this.city = this._settings.get_value("city").unpack();
+      this.station = this._settings.get_value("station").unpack();
+      this.aqi = this._settings.get_value("aqi").unpack();
 
       // Components
       let box = new St.BoxLayout({ style_class: "panel-status-menu-box" });
@@ -40,7 +46,7 @@ const Indicator = GObject.registerClass(
         text: "...",
         y_align: Clutter.ActorAlign.CENTER,
       });
-      this.quality_unit = new PopupMenu.PopupMenuItem(_(`Unit: ${this._settings.get_value("aqi").unpack() === 0 ? "US AQI" : "CN AQI"}`));
+      this.quality_unit = new PopupMenu.PopupMenuItem(_(`Unit: ${this.aqi === 0 ? "US AQI" : "CN AQI"}`));
       this.lastUpdate = new PopupMenu.PopupMenuItem(_(`Last update: ...`));
       let refreshBtn = new PopupMenu.PopupMenuItem(_(`Refresh`));
       let settingsBtn = new PopupMenu.PopupMenuItem(_(`Settings`));
@@ -50,6 +56,12 @@ const Indicator = GObject.registerClass(
       });
       settingsBtn.connect("activate", () => {
         Util.spawn(["gnome-extensions", "prefs", "iqair@wotmshuaisi_github"]);
+      });
+      this.quality_unit.connect("activate", () => {
+        Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`, null);
+      });
+      this.lastUpdate.connect("activate", () => {
+        Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`, null);
       });
       // Display
       this.menu.addMenuItem(this.quality_unit);
@@ -72,9 +84,9 @@ const Indicator = GObject.registerClass(
     }
 
     _build_req() {
-      let params = ["city=" + this._settings.get_value("city").unpack(), "state=" + this._settings.get_value("state").unpack(), "country=" + this._settings.get_value("country").unpack(), "key=" + this._settings.get_value("token").unpack()];
-      if (this._settings.get_value("station").unpack() !== "") {
-        params.push("station=" + this._settings.get_value("station").unpack());
+      let params = ["city=" + this.city, "state=" + this.state, "country=" + this.country, "key=" + this._settings.get_value("token").unpack()];
+      if (this.station !== "") {
+        params.push("station=" + this.station);
       }
       const url = `${this.api_url}?${params.join("&")}`;
       let request = Soup.Message.new("GET", url);
@@ -105,7 +117,7 @@ const Indicator = GObject.registerClass(
         }
 
         let json_aqi = 0;
-        if (this._settings.get_value("aqi").unpack() === 1) {
+        if (this.aqi === 1) {
           json_aqi = json_data.data.current.pollution.aqicn;
         } else {
           json_aqi = json_data.data.current.pollution.aqius;
@@ -141,7 +153,7 @@ const Indicator = GObject.registerClass(
         this._log([`Update AQI from: ${this.quality.text} to ${json_aqi}`]);
 
         this.quality.text = json_aqi.toString();
-        this.quality_unit.label_actor.text = `Unit: ${this._settings.get_value("aqi").unpack() === 0 ? "US AQI" : "CN AQI"}`;
+        this.quality_unit.label_actor.text = `Unit: ${this.aqi === 0 ? "US AQI" : "CN AQI"}`;
 
         this.lastUpdate.label_actor.text = "Last update: " + new Date().toLocaleTimeString();
       });
