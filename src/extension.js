@@ -58,10 +58,10 @@ const Indicator = GObject.registerClass(
         Util.spawn(["gnome-extensions", "prefs", "iqair@wotmshuaisi_github"]);
       });
       this.quality_unit.connect("activate", () => {
-        Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`, null);
+        Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`.toLowerCase(), null);
       });
       this.lastUpdate.connect("activate", () => {
-        Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`, null);
+        Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`.toLowerCase(), null);
       });
       // Display
       this.menu.addMenuItem(this.quality_unit);
