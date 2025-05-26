@@ -3,7 +3,7 @@ import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
 import Gio from "gi://Gio";
-import Soup from "gi://Soup?version=3.0";
+import Soup from "gi://Soup";
 
 import { Extension, gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
@@ -15,25 +15,25 @@ const Indicator = GObject.registerClass(
   class Indicator extends PanelMenu.Button {
     displayText = "...";
 
-    _get_settings() {
-      this._settings = Extension.lookupByUUID("iqair@wotmshuaisi_github").getSettings();
+    _get_setting_val(key) {
+      return this._ext._settings.get_value(key).unpack();
     }
 
-    _init() {
+    _init(ext) {
       super._init(0.0, _("IQAir Gnome Extension"));
-      this._get_settings();
+      this._ext = ext;
       this._httpSession = new Soup.Session();
-      this.api_url = `https://api.airvisual.com/v2/${this._settings.get_value("station").unpack() === "" ? "station" : "city"}`;
+      this.api_url = `https://api.airvisual.com/v2/${this._get_setting_val("station") === "" ? "station" : "city"}`;
       this.lock = false;
       this.quality;
       this.quality_unit;
       this.quality_icon;
       this.lastUpdate;
-      this.country = this._settings.get_value("country").unpack();
-      this.state = this._settings.get_value("state").unpack();
-      this.city = this._settings.get_value("city").unpack();
-      this.station = this._settings.get_value("station").unpack();
-      this.aqi = this._settings.get_value("aqi").unpack();
+      this.country = this._get_setting_val("country");
+      this.state = this._get_setting_val("state");
+      this.city = this._get_setting_val("city");
+      this.station = this._get_setting_val("station");
+      this.aqi = this._get_setting_val("aqi");
 
       // Components
       let box = new St.BoxLayout({ style_class: "panel-status-menu-box" });
@@ -55,7 +55,7 @@ const Indicator = GObject.registerClass(
         this._fetch_data();
       });
       settingsBtn.connect("activate", () => {
-        Util.spawn(["gnome-extensions", "prefs", "iqair@wotmshuaisi_github"]);
+        this._ext.openPreferences();
       });
       this.quality_unit.connect("activate", () => {
         Gio.AppInfo.launch_default_for_uri(`https://www.iqair.com/${this.country}/${this.state}/${this.city}${this.station ? "/" + this.station : ""}`.toLowerCase(), null);
@@ -80,11 +80,11 @@ const Indicator = GObject.registerClass(
     }
 
     _get_refresh_interval() {
-      return this._settings.get_value("refresh-interval").unpack();
+      return this._get_setting_val("refresh-interval");
     }
 
     _build_req() {
-      let params = ["city=" + this.city, "state=" + this.state, "country=" + this.country, "key=" + this._settings.get_value("token").unpack()];
+      let params = ["city=" + this.city, "state=" + this.state, "country=" + this.country, "key=" + this._get_setting_val("token")];
       if (this.station !== "") {
         params.push("station=" + this.station);
       }
@@ -165,10 +165,10 @@ const Indicator = GObject.registerClass(
       // Main.notifyError("IQAirMonitor", logs.join(", "));
     }
 
-    _onDestroy() {
+    destroy() {
       // Remove the background taks
       GLib.source_remove(this.backgroundTask);
-      super._onDestroy();
+      super.destroy();
     }
   }
 );
@@ -176,18 +176,23 @@ const Indicator = GObject.registerClass(
 export default class GoldPriceIndicatorExtension extends Extension {
   enable() {
     this._settings = this.getSettings();
-    this.run();
-  }
-
-  run() {
-    this._indicator = new Indicator();
-
+    this._indicator = new Indicator(this);
     this.addToPanel(this._settings.get_value("panel-position").unpack());
+
+    ["country", "state", "city", "station", "token", "aqi", "refresh-interval", "panel-position"].forEach((key) => {
+      this._settings.connect(`changed::${key}`, () => {
+        this.disable();
+        this.enable();
+      });
+    });
   }
 
   disable() {
-    this._indicator.destroy();
-    this._indicator = null;
+    if (this._indicator) {
+      this._indicator.destroy();
+      this._indicator = null;
+    }
+    this._settings = null;
   }
 
   addToPanel(indicator_position) {

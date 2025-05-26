@@ -14,7 +14,6 @@ export default class IQAirPreferences extends ExtensionPreferences {
       icon_name: "dialog-information-symbolic",
     });
     window.add(page);
-    this._page = page;
 
     // Token
     page.add(this._create_token_options());
@@ -39,6 +38,10 @@ export default class IQAirPreferences extends ExtensionPreferences {
 
     // Panel position
     page.add(this._create_panel_position_options());
+
+    window.connect("close-request", () => {
+      this._settings = null;
+    });
   }
 
   _create_token_options() {
