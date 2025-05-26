@@ -4,5 +4,5 @@
   "url": "https://github.com/wotmshuaisi/iqairGnomeExtension",
   "uuid": "iqair@wotmshuaisi_github",
   "settings-schema": "org.gnome.shell.extensions.iqair-gnome-extension",
-  "shell-version": ["45", "46", "47"]
+  "shell-version": ["45", "46", "47", "48"]
 }
