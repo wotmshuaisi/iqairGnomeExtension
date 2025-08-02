@@ -163,7 +163,7 @@ const Indicator = GObject.registerClass(
 
         this.quality.text = json_aqi.toString();
         this.quality_unit.label_actor.text = `Unit: ${this.aqi === 0 ? "US AQI" : "CN AQI"}`;
-        this.lastUpdate.label_actor.text = "Last update: " + _get_last_update_time(this._get_setting_val("last-update-format"));
+        this.lastUpdate.label_actor.text = "Last update: " + this._get_last_update_time(this._get_setting_val("last-update-format"));
       });
       this.lock = false;
     }
