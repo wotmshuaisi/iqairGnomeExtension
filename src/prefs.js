@@ -39,6 +39,9 @@ export default class IQAirPreferences extends ExtensionPreferences {
     // Panel position
     page.add(this._create_panel_position_options());
 
+    // Last update format
+    page.add(this._create_last_update_format_options());
+
     window.connect("close-request", () => {
       this._settings = null;
     });
@@ -173,5 +176,22 @@ export default class IQAirPreferences extends ExtensionPreferences {
 
     positionGroup.add(positionRow);
     return positionGroup;
+  }
+
+  _create_last_update_format_options() {
+    const lastUpdateGroup = new Adw.PreferencesGroup({ title: "Last Update" });
+
+    const lastUpdateModel = new Gtk.StringList();
+    ["24H", "12H"].forEach((pos) => lastUpdateModel.append(pos));
+
+    const lastUpdateRow = new Adw.ComboRow({
+      title: "Time Format",
+      subtitle: "Display the last update time in the 24/12H format.",
+      model: lastUpdateModel,
+    });
+    this._settings.bind("last-update-format", lastUpdateRow, "selected", Gio.SettingsBindFlags.NO_SENSETIVITY);
+
+    lastUpdateGroup.add(lastUpdateRow);
+    return lastUpdateGroup;
   }
 }

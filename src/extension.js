@@ -154,10 +154,18 @@ const Indicator = GObject.registerClass(
 
         this.quality.text = json_aqi.toString();
         this.quality_unit.label_actor.text = `Unit: ${this.aqi === 0 ? "US AQI" : "CN AQI"}`;
-
-        this.lastUpdate.label_actor.text = "Last update: " + new Date().toLocaleTimeString();
+        this.lastUpdate.label_actor.text = "Last update: " + _get_last_update_time(this._get_setting_val("last-update-format"));
       });
       this.lock = false;
+    }
+
+    _get_last_update_time(format) {
+      let configs = { hour: "numeric", minute: "numeric", second: "numeric", hour12: false };
+      if (format === "12H") {
+        configs.hour12 = true;
+        return new Date().toLocaleString("en", configs);
+      }
+      return new Date().toLocaleString("en", configs);
     }
 
     _log(logs) {

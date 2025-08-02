@@ -25,5 +25,8 @@
         <key name="panel-position" type="i">
             <default>1</default>
         </key>
+        <key name="last-update-format" type="s">
+            <default>"24H"</default>
+        </key>
     </schema>
 </schemalist>
