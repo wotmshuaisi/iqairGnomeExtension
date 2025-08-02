@@ -83,6 +83,15 @@ const Indicator = GObject.registerClass(
       return this._get_setting_val("refresh-interval");
     }
 
+    _get_last_update_time(format) {
+      let configs = { hour: "numeric", minute: "numeric", second: "numeric", hour12: false };
+      if (format === "12H") {
+        configs.hour12 = true;
+        return new Date().toLocaleString("en", configs);
+      }
+      return new Date().toLocaleString("en", configs);
+    }
+
     _build_req() {
       let params = ["city=" + this.city, "state=" + this.state, "country=" + this.country, "key=" + this._get_setting_val("token")];
       if (this.station !== "") {
@@ -157,15 +166,6 @@ const Indicator = GObject.registerClass(
         this.lastUpdate.label_actor.text = "Last update: " + _get_last_update_time(this._get_setting_val("last-update-format"));
       });
       this.lock = false;
-    }
-
-    _get_last_update_time(format) {
-      let configs = { hour: "numeric", minute: "numeric", second: "numeric", hour12: false };
-      if (format === "12H") {
-        configs.hour12 = true;
-        return new Date().toLocaleString("en", configs);
-      }
-      return new Date().toLocaleString("en", configs);
     }
 
     _log(logs) {
