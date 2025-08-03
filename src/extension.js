@@ -85,7 +85,7 @@ const Indicator = GObject.registerClass(
 
     _get_last_update_time(format) {
       let configs = { hour: "numeric", minute: "numeric", second: "numeric", hour12: false };
-      if (format === "12H") {
+      if (format === 1) {
         configs.hour12 = true;
         return new Date().toLocaleString("en", configs);
       }

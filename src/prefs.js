@@ -57,10 +57,6 @@ export default class IQAirPreferences extends ExtensionPreferences {
     });
 
     this._settings.bind("token", tokenRow, "text", Gio.SettingsBindFlags.DEFAULT);
-    // this._settings.set_string("token", "www.rrr.com");
-    // tokenRow.connect("apply", (e, v) =_create_station_options
-    //   this._settings.set_string("token", e.get_text());
-    // });
 
     tokenGroup.add(tokenRow);
     return tokenGroup;
