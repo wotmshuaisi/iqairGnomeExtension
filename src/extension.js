@@ -23,7 +23,7 @@ const Indicator = GObject.registerClass(
       super._init(0.0, _("IQAir Gnome Extension"));
       this._ext = ext;
       this._httpSession = new Soup.Session();
-      this.api_url = `https://api.airvisual.com/v2/${this._get_setting_val("station") === "" ? "station" : "city"}`;
+      this.api_url = `https://api.airvisual.com/v2/${this._get_setting_val("station") === "" ? "city" : "station"}`;
       this.lock = false;
       this.quality;
       this.quality_unit;
